@@ -1,0 +1,5 @@
+{
+  "name": "Scorebord Live",
+  "description": "Een interactief scorebord voor de klas. Maak teams, ken punten toe en bekijk de live tussenstand in een staafdiagram met een kroon voor de winnaar.",
+  "requestFramePermissions": []
+}
