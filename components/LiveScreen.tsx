@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, RefreshCw, Plus, Minus, Trophy, Maximize2, Minimize2 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, LabelList } from 'recharts';
 import { Team } from '../types';
@@ -29,6 +29,36 @@ export const LiveScreen: React.FC<LiveScreenProps> = ({ teams, setTeams, onBack 
     }
   };
 
+  const togglePresentationMode = async () => {
+    if (!document.fullscreenElement) {
+      try {
+        await document.documentElement.requestFullscreen();
+        // State update happens in useEffect via event listener
+      } catch (err) {
+        console.error("Error attempting to enable full-screen mode:", err);
+        // Fallback manual state update if API fails
+        setIsPresentationMode(true);
+      }
+    } else {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+        // State update happens in useEffect via event listener
+      }
+    }
+  };
+
+  // Sync React state with Browser Fullscreen state (e.g. when user presses ESC)
+  useEffect(() => {
+    const handleFullScreenChange = () => {
+      setIsPresentationMode(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    };
+  }, []);
+
   // Calculate stats for the chart
   const maxScore = Math.max(...teams.map(t => t.score));
   
@@ -36,42 +66,59 @@ export const LiveScreen: React.FC<LiveScreenProps> = ({ teams, setTeams, onBack 
   const sortedLeaderboard = [...teams].sort((a, b) => b.score - a.score);
 
   return (
-    <div className="flex flex-col h-screen max-h-screen overflow-hidden bg-slate-900">
-      {/* Header - Compact */}
-      <header className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex justify-between items-center shadow-md z-20 shrink-0 h-16">
-        <div className="flex items-center gap-4">
-            <button 
-            onClick={onBack}
-            className="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors font-medium text-sm"
-            >
-            <ArrowLeft size={16} />
-            <span className="hidden sm:inline">Configuratie</span>
-            </button>
-            
-            <h1 className="text-xl md:text-2xl font-display flex items-center gap-2 text-[#4f86f7] tracking-wide drop-shadow-md">
-            <Trophy className="text-yellow-500 fill-yellow-500/20 w-6 h-6" strokeWidth={2.5} />
-            <span className="hidden md:inline">Scorebord Live</span>
-            </h1>
-        </div>
+    <div className="flex flex-col h-screen max-h-screen overflow-hidden bg-slate-900 relative">
+      
+      {/* Floating Exit Button for Presentation Mode */}
+      {isPresentationMode && (
+        <button 
+            onClick={togglePresentationMode}
+            className="absolute top-4 right-4 z-50 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white p-3 rounded-full backdrop-blur-sm border border-slate-600 transition-all shadow-lg group"
+            title="Verlaat volledig scherm"
+        >
+            <Minimize2 size={24} />
+            <span className="absolute right-full mr-2 bg-black/75 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                Sluiten
+            </span>
+        </button>
+      )}
 
-        <div className="flex items-center gap-2">
-            <button 
-                onClick={() => setIsPresentationMode(!isPresentationMode)}
-                className={`flex items-center gap-2 transition-colors p-2 rounded-full border ${isPresentationMode ? 'bg-[#4f86f7] text-white border-[#4f86f7]' : 'bg-slate-800 text-slate-500 border-slate-700 hover:text-[#4f86f7]'}`}
-                title={isPresentationMode ? "Sluit presentatiemodus" : "Presentatiemodus (groot scherm)"}
-            >
-                {isPresentationMode ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
-            </button>
+      {/* Header - Only visible when NOT in presentation mode */}
+      {!isPresentationMode && (
+        <header className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex justify-between items-center shadow-md z-20 shrink-0 h-16">
+            <div className="flex items-center gap-4">
+                <button 
+                onClick={onBack}
+                className="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors font-medium text-sm"
+                >
+                <ArrowLeft size={16} />
+                <span className="hidden sm:inline">Configuratie</span>
+                </button>
+                
+                <h1 className="text-xl md:text-2xl font-display flex items-center gap-2 text-[#4f86f7] tracking-wide drop-shadow-md">
+                <Trophy className="text-yellow-500 fill-yellow-500/20 w-6 h-6" strokeWidth={2.5} />
+                <span className="hidden md:inline">Scorebord Live</span>
+                </h1>
+            </div>
 
-            <button 
-            onClick={resetScores}
-            className="flex items-center gap-2 text-slate-500 hover:text-red-400 transition-colors bg-slate-800 p-2 rounded-full hover:bg-slate-700 border border-slate-700"
-            title="Reset alle scores"
-            >
-                <RefreshCw size={20} />
-            </button>
-        </div>
-      </header>
+            <div className="flex items-center gap-2">
+                <button 
+                    onClick={togglePresentationMode}
+                    className="flex items-center gap-2 transition-colors p-2 rounded-full bg-slate-800 text-slate-500 border border-slate-700 hover:text-[#4f86f7]"
+                    title="Presentatiemodus (groot scherm)"
+                >
+                    <Maximize2 size={20} />
+                </button>
+
+                <button 
+                onClick={resetScores}
+                className="flex items-center gap-2 text-slate-500 hover:text-red-400 transition-colors bg-slate-800 p-2 rounded-full hover:bg-slate-700 border border-slate-700"
+                title="Reset alle scores"
+                >
+                    <RefreshCw size={20} />
+                </button>
+            </div>
+        </header>
+      )}
 
       {/* Main Content Grid */}
       <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
@@ -81,7 +128,7 @@ export const LiveScreen: React.FC<LiveScreenProps> = ({ teams, setTeams, onBack 
             {/* Subtle background decoration */}
             <div className="absolute inset-0 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:20px_20px] opacity-20 z-0 pointer-events-none" />
             
-            <div className="flex-1 bg-slate-800 rounded-xl border border-slate-700 p-2 shadow-2xl relative z-10 flex flex-col">
+            <div className={`flex-1 bg-slate-800 rounded-xl border border-slate-700 p-2 shadow-2xl relative z-10 flex flex-col transition-all duration-500 ${isPresentationMode ? 'm-0 border-0 rounded-none' : ''}`}>
                 <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                     data={teams} // Using original order so bars don't swap positions
