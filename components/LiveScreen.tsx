@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, RefreshCw, Plus, Minus, Trophy, Maximize2, Minimize2 } from 'lucide-react';
+import React from 'react';
+import { ArrowLeft, RefreshCw, Plus, Minus, Trophy } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, LabelList } from 'recharts';
 import { Team } from '../types';
 import { CustomBarLabel, CustomTick } from './ChartComponents';
@@ -11,7 +11,6 @@ interface LiveScreenProps {
 }
 
 export const LiveScreen: React.FC<LiveScreenProps> = ({ teams, setTeams, onBack }) => {
-  const [isPresentationMode, setIsPresentationMode] = useState(false);
 
   const updateScore = (id: string, delta: number) => {
     setTeams(teams.map(t => {
@@ -29,36 +28,6 @@ export const LiveScreen: React.FC<LiveScreenProps> = ({ teams, setTeams, onBack 
     }
   };
 
-  const togglePresentationMode = async () => {
-    if (!document.fullscreenElement) {
-      try {
-        await document.documentElement.requestFullscreen();
-        // State update happens in useEffect via event listener
-      } catch (err) {
-        console.error("Error attempting to enable full-screen mode:", err);
-        // Fallback manual state update if API fails
-        setIsPresentationMode(true);
-      }
-    } else {
-      if (document.exitFullscreen) {
-        await document.exitFullscreen();
-        // State update happens in useEffect via event listener
-      }
-    }
-  };
-
-  // Sync React state with Browser Fullscreen state (e.g. when user presses ESC)
-  useEffect(() => {
-    const handleFullScreenChange = () => {
-      setIsPresentationMode(!!document.fullscreenElement);
-    };
-
-    document.addEventListener('fullscreenchange', handleFullScreenChange);
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullScreenChange);
-    };
-  }, []);
-
   // Calculate stats for the chart
   const maxScore = Math.max(...teams.map(t => t.score));
   
@@ -66,69 +35,45 @@ export const LiveScreen: React.FC<LiveScreenProps> = ({ teams, setTeams, onBack 
   const sortedLeaderboard = [...teams].sort((a, b) => b.score - a.score);
 
   return (
-    <div className="flex flex-col h-screen max-h-screen overflow-hidden bg-slate-900 relative">
+    <div className="flex flex-col h-screen max-h-screen overflow-hidden bg-slate-900">
       
-      {/* Floating Exit Button for Presentation Mode */}
-      {isPresentationMode && (
-        <button 
-            onClick={togglePresentationMode}
-            className="absolute top-4 right-4 z-50 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white p-3 rounded-full backdrop-blur-sm border border-slate-600 transition-all shadow-lg group"
-            title="Verlaat volledig scherm"
-        >
-            <Minimize2 size={24} />
-            <span className="absolute right-full mr-2 bg-black/75 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                Sluiten
-            </span>
-        </button>
-      )}
+      {/* Header - Always visible */}
+      <header className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex justify-between items-center shadow-md z-20 shrink-0 h-16">
+        <div className="flex items-center gap-4">
+            <button 
+            onClick={onBack}
+            className="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors font-medium text-sm"
+            >
+            <ArrowLeft size={16} />
+            <span className="hidden sm:inline">Configuratie</span>
+            </button>
+            
+            <h1 className="text-xl md:text-2xl font-display flex items-center gap-2 text-[#4f86f7] tracking-wide drop-shadow-md">
+            <Trophy className="text-yellow-500 fill-yellow-500/20 w-6 h-6" strokeWidth={2.5} />
+            <span className="hidden md:inline">Scorebord Live</span>
+            </h1>
+        </div>
 
-      {/* Header - Only visible when NOT in presentation mode */}
-      {!isPresentationMode && (
-        <header className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex justify-between items-center shadow-md z-20 shrink-0 h-16">
-            <div className="flex items-center gap-4">
-                <button 
-                onClick={onBack}
-                className="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors font-medium text-sm"
-                >
-                <ArrowLeft size={16} />
-                <span className="hidden sm:inline">Configuratie</span>
-                </button>
-                
-                <h1 className="text-xl md:text-2xl font-display flex items-center gap-2 text-[#4f86f7] tracking-wide drop-shadow-md">
-                <Trophy className="text-yellow-500 fill-yellow-500/20 w-6 h-6" strokeWidth={2.5} />
-                <span className="hidden md:inline">Scorebord Live</span>
-                </h1>
-            </div>
+        <div className="flex items-center gap-2">
+            <button 
+            onClick={resetScores}
+            className="flex items-center gap-2 text-slate-500 hover:text-red-400 transition-colors bg-slate-800 p-2 rounded-full hover:bg-slate-700 border border-slate-700"
+            title="Reset alle scores"
+            >
+                <RefreshCw size={20} />
+            </button>
+        </div>
+      </header>
 
-            <div className="flex items-center gap-2">
-                <button 
-                    onClick={togglePresentationMode}
-                    className="flex items-center gap-2 transition-colors p-2 rounded-full bg-slate-800 text-slate-500 border border-slate-700 hover:text-[#4f86f7]"
-                    title="Presentatiemodus (groot scherm)"
-                >
-                    <Maximize2 size={20} />
-                </button>
-
-                <button 
-                onClick={resetScores}
-                className="flex items-center gap-2 text-slate-500 hover:text-red-400 transition-colors bg-slate-800 p-2 rounded-full hover:bg-slate-700 border border-slate-700"
-                title="Reset alle scores"
-                >
-                    <RefreshCw size={20} />
-                </button>
-            </div>
-        </header>
-      )}
-
-      {/* Main Content Grid */}
+      {/* Main Content Grid - Fixed Layout */}
       <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
         
         {/* LEFT: Live Chart */}
-        <div className="flex-1 p-4 flex flex-col min-h-0 relative bg-slate-900 transition-all duration-500 ease-in-out">
+        <div className="flex-1 p-4 flex flex-col min-h-0 relative bg-slate-900">
             {/* Subtle background decoration */}
             <div className="absolute inset-0 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:20px_20px] opacity-20 z-0 pointer-events-none" />
             
-            <div className={`flex-1 bg-slate-800 rounded-xl border border-slate-700 p-2 shadow-2xl relative z-10 flex flex-col transition-all duration-500 ${isPresentationMode ? 'm-0 border-0 rounded-none' : ''}`}>
+            <div className="flex-1 bg-slate-800 rounded-xl border border-slate-700 p-2 shadow-2xl relative z-10 flex flex-col">
                 <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                     data={teams} // Using original order so bars don't swap positions
@@ -138,7 +83,7 @@ export const LiveScreen: React.FC<LiveScreenProps> = ({ teams, setTeams, onBack 
                     <XAxis 
                         dataKey="name" 
                         stroke="#64748b" 
-                        tick={<CustomTick teams={teams} />}
+                        tick={<CustomTick />}
                         tickLine={false}
                         axisLine={{ stroke: '#475569' }}
                         interval={0}
@@ -158,7 +103,7 @@ export const LiveScreen: React.FC<LiveScreenProps> = ({ teams, setTeams, onBack 
                     <Bar 
                         dataKey="score" 
                         radius={[6, 6, 0, 0]}
-                        animationDuration={800}
+                        animationDuration={500}
                         isAnimationActive={true}
                     >
                         {teams.map((entry, index) => (
@@ -166,7 +111,7 @@ export const LiveScreen: React.FC<LiveScreenProps> = ({ teams, setTeams, onBack 
                         ))}
                         <LabelList 
                             dataKey="score" 
-                            content={<CustomBarLabel maxScore={maxScore} teams={teams} />} 
+                            content={<CustomBarLabel maxScore={maxScore} />} 
                         />
                     </Bar>
                 </BarChart>
@@ -174,84 +119,82 @@ export const LiveScreen: React.FC<LiveScreenProps> = ({ teams, setTeams, onBack 
             </div>
         </div>
 
-        {/* RIGHT: Controls - Collapsible Sidebar */}
-        {!isPresentationMode && (
-          <div 
-              className="bg-slate-800 border-l border-slate-700 flex flex-col shadow-2xl z-20 w-full lg:w-[380px] overflow-hidden"
-          >
-            <div className="px-4 py-2 bg-slate-800 border-b border-slate-700 shrink-0 whitespace-nowrap">
-              <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Bediening</h2>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-slate-900/30 whitespace-nowrap">
-              {teams.map((team) => (
-                <div 
-                  key={team.id} 
-                  className="bg-slate-700/50 rounded-lg p-2 border border-slate-600/50 flex items-center gap-3 hover:bg-slate-700 transition-colors group"
-                  style={{ borderLeft: `4px solid ${team.color}` }}
-                >
-                  {/* Team Info */}
-                  <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-baseline">
-                          <h3 className="font-bold text-slate-200 text-sm truncate pr-2">{team.name}</h3>
-                          <span className="font-mono font-black text-xl text-white">{team.score}</span>
-                      </div>
-                      <div className="text-xs text-slate-500 truncate group-hover:text-slate-400 transition-colors">
-                          {team.members || "Geen leden"}
-                      </div>
-                  </div>
-
-                  {/* Controls */}
-                  <div className="flex items-center gap-1 shrink-0">
-                      <button 
-                          onClick={() => updateScore(team.id, -1)}
-                          className="w-8 h-8 bg-slate-800 hover:bg-red-900/50 text-slate-400 hover:text-red-400 border border-slate-600 rounded flex items-center justify-center transition-all active:scale-95"
-                          title="-1 Punt"
-                      >
-                          <Minus size={14} />
-                      </button>
-                      <button 
-                          onClick={() => updateScore(team.id, 1)}
-                          className="h-8 px-3 bg-[#4f86f7] hover:bg-blue-600 text-white font-bold rounded flex items-center justify-center gap-1 transition-all active:scale-95 shadow-sm text-sm"
-                          title="+1 Punt"
-                      >
-                          <Plus size={14} />
-                          <span>1</span>
-                      </button>
-                      <button 
-                          onClick={() => updateScore(team.id, 5)}
-                          className="h-8 px-2 bg-slate-800 hover:bg-emerald-900/30 text-emerald-400 border border-slate-600 hover:border-emerald-700 font-bold rounded flex items-center justify-center transition-all active:scale-95 text-xs"
-                          title="+5 Punten"
-                      >
-                          +5
-                      </button>
-                  </div>
+        {/* RIGHT: Controls - Fixed Sidebar */}
+        <div 
+            className="bg-slate-800 border-l border-slate-700 flex flex-col shadow-2xl z-20 w-full lg:w-[380px] overflow-hidden"
+        >
+        <div className="px-4 py-2 bg-slate-800 border-b border-slate-700 shrink-0 whitespace-nowrap">
+            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Bediening</h2>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-slate-900/30 whitespace-nowrap">
+            {teams.map((team) => (
+            <div 
+                key={team.id} 
+                className="bg-slate-700/50 rounded-lg p-2 border border-slate-600/50 flex items-center gap-3 hover:bg-slate-700 transition-colors group"
+                style={{ borderLeft: `4px solid ${team.color}` }}
+            >
+                {/* Team Info */}
+                <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-baseline">
+                        <h3 className="font-bold text-slate-200 text-sm truncate pr-2">{team.name}</h3>
+                        <span className="font-mono font-black text-xl text-white">{team.score}</span>
+                    </div>
+                    <div className="text-xs text-slate-500 truncate group-hover:text-slate-400 transition-colors">
+                        {team.members || "Geen leden"}
+                    </div>
                 </div>
-              ))}
-            </div>
 
-              {/* Mini Top 3 - Very Compact */}
-            <div className="px-4 py-2 bg-slate-800 border-t border-slate-700 shrink-0 whitespace-nowrap">
-              <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                  <span className="uppercase font-bold">Top 3</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                  {sortedLeaderboard.slice(0, 3).map((team, idx) => (
-                      <div key={team.id} className="bg-slate-900 rounded p-1.5 border border-slate-700 flex flex-col items-center">
-                          <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold mb-1 ${
-                                  idx === 0 ? 'bg-yellow-500 text-slate-900' : 
-                                  idx === 1 ? 'bg-slate-400 text-slate-900' : 'bg-orange-500 text-white'
-                              }`}>
-                                  {idx + 1}
-                              </div>
-                          <span className="text-[10px] text-slate-300 truncate w-full text-center font-medium">{team.name}</span>
-                          <span className="text-xs font-bold text-white">{team.score}</span>
-                      </div>
-                  ))}
-              </div>
+                {/* Controls */}
+                <div className="flex items-center gap-1 shrink-0">
+                    <button 
+                        onClick={() => updateScore(team.id, -1)}
+                        className="w-8 h-8 bg-slate-800 hover:bg-red-900/50 text-slate-400 hover:text-red-400 border border-slate-600 rounded flex items-center justify-center transition-all active:scale-95"
+                        title="-1 Punt"
+                    >
+                        <Minus size={14} />
+                    </button>
+                    <button 
+                        onClick={() => updateScore(team.id, 1)}
+                        className="h-8 px-3 bg-[#4f86f7] hover:bg-blue-600 text-white font-bold rounded flex items-center justify-center gap-1 transition-all active:scale-95 shadow-sm text-sm"
+                        title="+1 Punt"
+                    >
+                        <Plus size={14} />
+                        <span>1</span>
+                    </button>
+                    <button 
+                        onClick={() => updateScore(team.id, 5)}
+                        className="h-8 px-2 bg-slate-800 hover:bg-emerald-900/30 text-emerald-400 border border-slate-600 hover:border-emerald-700 font-bold rounded flex items-center justify-center transition-all active:scale-95 text-xs"
+                        title="+5 Punten"
+                    >
+                        +5
+                    </button>
+                </div>
             </div>
-          </div>
-        )}
+            ))}
+        </div>
+
+            {/* Mini Top 3 - Very Compact */}
+        <div className="px-4 py-2 bg-slate-800 border-t border-slate-700 shrink-0 whitespace-nowrap">
+            <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                <span className="uppercase font-bold">Top 3</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+                {sortedLeaderboard.slice(0, 3).map((team, idx) => (
+                    <div key={team.id} className="bg-slate-900 rounded p-1.5 border border-slate-700 flex flex-col items-center">
+                        <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold mb-1 ${
+                                idx === 0 ? 'bg-yellow-500 text-slate-900' : 
+                                idx === 1 ? 'bg-slate-400 text-slate-900' : 'bg-orange-500 text-white'
+                            }`}>
+                                {idx + 1}
+                            </div>
+                        <span className="text-[10px] text-slate-300 truncate w-full text-center font-medium">{team.name}</span>
+                        <span className="text-xs font-bold text-white">{team.score}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+        </div>
       </div>
     </div>
   );
