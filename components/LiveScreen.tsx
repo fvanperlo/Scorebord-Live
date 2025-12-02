@@ -1,5 +1,5 @@
-import React from 'react';
-import { ArrowLeft, RefreshCw, Plus, Minus, Trophy } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, RefreshCw, Plus, Minus, Trophy, Maximize2, Minimize2 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, LabelList } from 'recharts';
 import { Team } from '../types';
 import { CustomBarLabel, CustomTick } from './ChartComponents';
@@ -11,6 +11,7 @@ interface LiveScreenProps {
 }
 
 export const LiveScreen: React.FC<LiveScreenProps> = ({ teams, setTeams, onBack }) => {
+  const [isPresentationMode, setIsPresentationMode] = useState(false);
 
   const updateScore = (id: string, delta: number) => {
     setTeams(teams.map(t => {
@@ -38,33 +39,45 @@ export const LiveScreen: React.FC<LiveScreenProps> = ({ teams, setTeams, onBack 
     <div className="flex flex-col h-screen max-h-screen overflow-hidden bg-slate-900">
       {/* Header - Compact */}
       <header className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex justify-between items-center shadow-md z-20 shrink-0 h-16">
-        <button 
-          onClick={onBack}
-          className="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors font-medium text-sm"
-        >
-          <ArrowLeft size={16} />
-          <span className="hidden sm:inline">Configuratie</span>
-        </button>
-        
-        <h1 className="text-xl md:text-2xl font-display flex items-center gap-2 text-[#4f86f7] tracking-wide drop-shadow-md">
-          <Trophy className="text-yellow-500 fill-yellow-500/20 w-6 h-6" strokeWidth={2.5} />
-          <span>Scorebord Live</span>
-        </h1>
+        <div className="flex items-center gap-4">
+            <button 
+            onClick={onBack}
+            className="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors font-medium text-sm"
+            >
+            <ArrowLeft size={16} />
+            <span className="hidden sm:inline">Configuratie</span>
+            </button>
+            
+            <h1 className="text-xl md:text-2xl font-display flex items-center gap-2 text-[#4f86f7] tracking-wide drop-shadow-md">
+            <Trophy className="text-yellow-500 fill-yellow-500/20 w-6 h-6" strokeWidth={2.5} />
+            <span className="hidden md:inline">Scorebord Live</span>
+            </h1>
+        </div>
 
-        <button 
-          onClick={resetScores}
-          className="flex items-center gap-2 text-slate-500 hover:text-red-400 transition-colors bg-slate-800 p-2 rounded-full hover:bg-slate-700 border border-slate-700"
-          title="Reset alle scores"
-        >
-            <RefreshCw size={16} />
-        </button>
+        <div className="flex items-center gap-2">
+            <button 
+                onClick={() => setIsPresentationMode(!isPresentationMode)}
+                className={`flex items-center gap-2 transition-colors p-2 rounded-full border ${isPresentationMode ? 'bg-[#4f86f7] text-white border-[#4f86f7]' : 'bg-slate-800 text-slate-500 border-slate-700 hover:text-[#4f86f7]'}`}
+                title={isPresentationMode ? "Sluit presentatiemodus" : "Presentatiemodus (groot scherm)"}
+            >
+                {isPresentationMode ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+            </button>
+
+            <button 
+            onClick={resetScores}
+            className="flex items-center gap-2 text-slate-500 hover:text-red-400 transition-colors bg-slate-800 p-2 rounded-full hover:bg-slate-700 border border-slate-700"
+            title="Reset alle scores"
+            >
+                <RefreshCw size={20} />
+            </button>
+        </div>
       </header>
 
       {/* Main Content Grid */}
       <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
         
         {/* LEFT: Live Chart */}
-        <div className="flex-1 p-4 flex flex-col min-h-0 relative bg-slate-900">
+        <div className="flex-1 p-4 flex flex-col min-h-0 relative bg-slate-900 transition-all duration-500 ease-in-out">
             {/* Subtle background decoration */}
             <div className="absolute inset-0 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:20px_20px] opacity-20 z-0 pointer-events-none" />
             
@@ -114,13 +127,16 @@ export const LiveScreen: React.FC<LiveScreenProps> = ({ teams, setTeams, onBack 
             </div>
         </div>
 
-        {/* RIGHT: Controls - Compact "One Screen" Layout */}
-        <div className="w-full lg:w-[380px] bg-slate-800 border-l border-slate-700 flex flex-col shadow-2xl z-20">
-          <div className="px-4 py-2 bg-slate-800 border-b border-slate-700 shrink-0">
+        {/* RIGHT: Controls - Collapsible Sidebar */}
+        <div 
+            className={`bg-slate-800 border-l border-slate-700 flex flex-col shadow-2xl z-20 transition-all duration-500 ease-in-out overflow-hidden
+            ${isPresentationMode ? 'w-0 border-l-0 opacity-0' : 'w-full lg:w-[380px] opacity-100'}`}
+        >
+          <div className="px-4 py-2 bg-slate-800 border-b border-slate-700 shrink-0 whitespace-nowrap">
             <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Bediening</h2>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-slate-900/30">
+          <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-slate-900/30 whitespace-nowrap">
             {teams.map((team) => (
               <div 
                 key={team.id} 
@@ -168,7 +184,7 @@ export const LiveScreen: React.FC<LiveScreenProps> = ({ teams, setTeams, onBack 
           </div>
 
             {/* Mini Top 3 - Very Compact */}
-          <div className="px-4 py-2 bg-slate-800 border-t border-slate-700 shrink-0">
+          <div className="px-4 py-2 bg-slate-800 border-t border-slate-700 shrink-0 whitespace-nowrap">
              <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
                 <span className="uppercase font-bold">Top 3</span>
              </div>
